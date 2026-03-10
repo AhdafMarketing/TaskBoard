@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مركز التحكم - لوحة المهام</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Changa:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg-main:#0f1119;--bg-card:#1a1d2e;--bg-input:#141726;--accent-purple:#8b5cf6;--accent-purple-light:#a78bfa;--accent-green:#34d399;--accent-green-dark:#059669;--accent-red:#ef4444;--accent-red-light:#f87171;--accent-amber:#f59e0b;--text-white:#f1f5f9;--text-muted:#94a3b8;--text-dim:#64748b;--border:rgba(139,92,246,0.15);--border-active:rgba(139,92,246,0.4);--progress-low:#e74c3c;--progress-mid:#f39c12;--progress-high:#27ae60;--progress-full:#2ecc71}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Tajawal',sans-serif;background:var(--bg-main);color:var(--text-white);min-height:100vh}
+        .header{background:linear-gradient(135deg,#1a1d2e,#0f1119);border-bottom:1px solid var(--border);padding:1.2rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+        .header-title{font-family:'Changa',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--accent-purple),var(--accent-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .header-subtitle{font-size:0.85rem;color:var(--text-dim);margin-top:0.2rem}
+        .status-badge{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;border-radius:50px;font-size:0.85rem}
+        .status-badge.on{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);color:var(--accent-green)}
+        .status-badge.off{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--accent-red-light)}
+        .status-dot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}
+        .status-badge.on .status-dot{background:var(--accent-green)}.status-badge.off .status-dot{background:var(--accent-red)}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .main-content{display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;padding:1.5rem 2rem;max-width:1600px;margin:0 auto}
+        .sidebar{display:flex;flex-direction:column;gap:1.5rem}
+        .panel{background:var(--bg-card);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+        .panel:hover{border-color:var(--border-active)}
+        .panel-header{display:flex;align-items:center;padding:1rem 1.5rem;background:rgba(139,92,246,0.05);border-bottom:1px solid var(--border)}
+        .panel-title{font-family:'Changa',sans-serif;font-weight:700;font-size:1.1rem;color:var(--accent-purple-light)}
+        .panel-body{padding:1.5rem}
+        .form-group{margin-bottom:1.2rem}.form-group:last-child{margin-bottom:0}
+        .form-label{display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;font-weight:500}
+        .form-input{width:100%;padding:0.75rem 1rem;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:var(--text-white);font-family:'Tajawal',sans-serif;font-size:0.95rem;direction:rtl}
+        .form-input:focus{outline:none;border-color:var(--accent-purple);box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+        textarea.form-input{resize:vertical;min-height:80px;line-height:1.8}
+
+        /* Photo upload */
+        .photo-upload-area{display:flex;flex-direction:column;align-items:center;gap:1rem}
+        .photo-preview{width:100px;height:100px;border-radius:50%;border:3px solid var(--accent-purple);overflow:hidden;background:var(--bg-input);display:flex;align-items:center;justify-content:center}
+        .photo-preview img{width:100%;height:100%;object-fit:cover}
+        .photo-preview .ph{font-size:2.5rem;opacity:0.3}
+        .upload-btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.5rem;background:linear-gradient(135deg,var(--accent-purple),#7c3aed);color:white;border:none;border-radius:10px;font-family:'Tajawal',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s}
+        .upload-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(139,92,246,0.4)}
+        .remove-btn{padding:0.4rem 1rem;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.2);color:var(--accent-red-light);border-radius:8px;font-family:'Tajawal',sans-serif;font-size:0.8rem;cursor:pointer}
+        .remove-btn:hover{background:rgba(239,68,68,0.25)}
+
+        /* Crop modal */
+        .crop-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem}
+        .crop-modal.active{display:flex}
+        .crop-container{position:relative;width:300px;height:300px;overflow:hidden;border-radius:50%;border:4px solid var(--accent-purple);box-shadow:0 0 60px rgba(139,92,246,0.3)}
+        .crop-container img{position:absolute;cursor:grab;user-select:none;-webkit-user-drag:none}
+        .crop-container img:active{cursor:grabbing}
+        .crop-controls{display:flex;gap:1rem;align-items:center}
+        .crop-controls label{color:var(--text-muted);font-size:0.85rem}
+        .crop-controls input[type=range]{width:200px;accent-color:var(--accent-purple)}
+        .crop-buttons{display:flex;gap:1rem}
+        .crop-save{padding:0.7rem 2rem;background:linear-gradient(135deg,var(--accent-green-dark),#047857);color:white;border:none;border-radius:10px;font-family:'Tajawal',sans-serif;font-weight:700;font-size:1rem;cursor:pointer}
+        .crop-cancel{padding:0.7rem 2rem;background:rgba(255,255,255,0.1);color:var(--text-white);border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-weight:700;font-size:1rem;cursor:pointer}
+
+        .btn-success{width:100%;display:flex;justify-content:center;padding:1rem;font-size:1.1rem;border:none;border-radius:10px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--accent-green-dark),#047857);color:white}
+        .btn-success:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(52,211,153,0.3)}
+        .tasks-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+        .section-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+        .section-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;background:rgba(139,92,246,0.05);border-bottom:1px solid var(--border)}
+        .section-title-input{background:transparent;border:none;color:var(--accent-purple-light);font-family:'Changa',sans-serif;font-weight:700;font-size:1.1rem;width:100%;padding:0.2rem 0}
+        .section-title-input:focus{outline:none;border-bottom:1px solid var(--accent-purple)}
+        .task-count{font-size:0.8rem;color:var(--text-dim);background:rgba(139,92,246,0.1);padding:0.2rem 0.6rem;border-radius:50px;white-space:nowrap}
+        .section-body{padding:1rem 1.5rem}
+        .task-add-row{display:flex;gap:0.5rem;margin-bottom:1rem}
+        .task-add-input{flex:1;padding:0.6rem 1rem;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:var(--text-white);font-family:'Tajawal',sans-serif;font-size:0.9rem;direction:rtl}
+        .task-add-input:focus{outline:none;border-color:var(--accent-purple)}.task-add-input::placeholder{color:var(--text-dim)}
+        .btn-add{padding:0.6rem 0.8rem;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.2);color:var(--accent-green);border-radius:10px;cursor:pointer;font-size:1.1rem;min-width:38px;display:flex;align-items:center;justify-content:center}
+        .task-items-list{display:flex;flex-direction:column;gap:0.6rem;max-height:400px;overflow-y:auto}
+        .task-items-list::-webkit-scrollbar{width:4px}.task-items-list::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:4px}
+        .task-row{display:flex;flex-direction:column;gap:0.4rem;padding:0.7rem 0.8rem;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid transparent}
+        .task-row:hover{background:rgba(255,255,255,0.06);border-color:rgba(139,92,246,0.08)}
+        .task-top-row{display:flex;align-items:center;gap:0.5rem}
+        .task-text{flex:1;font-size:0.9rem;color:var(--text-white)}
+        .task-edit-input{flex:1;background:var(--bg-input);border:1px solid var(--accent-purple);border-radius:6px;color:var(--text-white);font-family:'Tajawal',sans-serif;font-size:0.9rem;padding:0.3rem 0.6rem;direction:rtl}
+        .task-actions{display:flex;gap:0.3rem}
+        .btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;background:transparent}
+        .btn-icon.edit{color:var(--accent-amber)}.btn-icon.delete{color:var(--accent-red)}
+        .task-details-row{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+        .mini-input{padding:0.3rem 0.6rem;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-white);font-family:'Tajawal',sans-serif;font-size:0.78rem;direction:rtl;width:110px}
+        .mini-input:focus{outline:none;border-color:var(--accent-purple)}.mini-input::placeholder{color:var(--text-dim)}
+        .mini-select{padding:0.3rem 0.5rem;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-white);font-family:'Tajawal',sans-serif;font-size:0.78rem;direction:rtl;cursor:pointer}
+        .mini-label{font-size:0.7rem;color:var(--text-dim)}
+        .progress-row{display:flex;align-items:center;gap:0.5rem;direction:ltr}
+        .progress-slider{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:10px;outline:none;cursor:pointer}
+        .progress-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid #1a1d2e;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+        .progress-slider.low::-webkit-slider-thumb{background:var(--progress-low)}.progress-slider.mid::-webkit-slider-thumb{background:var(--progress-mid)}.progress-slider.high::-webkit-slider-thumb{background:var(--progress-high)}.progress-slider.full::-webkit-slider-thumb{background:var(--progress-full)}
+        .progress-value{font-size:0.75rem;font-weight:700;min-width:32px;text-align:center}
+        .progress-value.low{color:var(--progress-low)}.progress-value.mid{color:var(--progress-mid)}.progress-value.high{color:var(--progress-high)}.progress-value.full{color:var(--progress-full)}
+        .quick-btns{display:flex;gap:0.2rem}
+        .quick-btn{font-size:0.65rem;padding:0.15rem 0.35rem;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:'Tajawal',sans-serif}
+        .quick-btn:hover{background:rgba(139,92,246,0.15);color:var(--accent-purple-light)}
+        .empty-tasks{text-align:center;color:var(--text-dim);font-size:0.85rem;padding:1.5rem 0}
+        .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--accent-green-dark);color:white;padding:0.8rem 2rem;border-radius:12px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,0.4);transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);z-index:1000}
+        .toast.show{transform:translateX(-50%) translateY(0)}
+        .loading-overlay{position:fixed;inset:0;background:rgba(15,17,25,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.5s}
+        .loading-overlay.hidden{opacity:0;pointer-events:none}
+        .loading-spinner{width:40px;height:40px;border:4px solid rgba(139,92,246,0.2);border-top-color:var(--accent-purple);border-radius:50%;animation:spin 0.8s linear infinite}
+        .loading-text{margin-top:1rem;font-family:'Changa',sans-serif;color:var(--accent-purple-light);font-weight:700}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @media(max-width:1200px){.main-content{grid-template-columns:1fr}.tasks-grid{grid-template-columns:1fr 1fr}}
+        @media(max-width:768px){.header{padding:0.8rem 1rem}.main-content{grid-template-columns:1fr;padding:1rem;gap:1rem}.tasks-grid{grid-template-columns:1fr;gap:1rem}.task-actions{opacity:1}.crop-container{width:250px;height:250px}}
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div><div class="loading-text">جاري التحميل...</div></div>
+    <header class="header">
+        <div><div class="header-title">⚙️ مركز التحكم</div><div class="header-subtitle">إدارة لوحة المهام اليومية</div></div>
+        <div class="status-badge off" id="sb"><span class="status-dot"></span><span id="stt">جاري الاتصال...</span></div>
+    </header>
+    <div class="main-content">
+        <div class="sidebar">
+            <!-- Employee of Month -->
+            <div class="panel">
+                <div class="panel-header"><span class="panel-title">🏆 موظف الشهر</span></div>
+                <div class="panel-body">
+                    <div class="form-group"><label class="form-label">العنوان</label><input type="text" class="form-input" id="employeeLabel" placeholder="موظف شهر فبراير"></div>
+                    <div class="form-group"><label class="form-label">اسم الموظف</label><input type="text" class="form-input" id="employeeName" placeholder="اكتب الاسم..."></div>
+                    <div class="form-group">
+                        <label class="form-label">الصورة</label>
+                        <div class="photo-upload-area">
+                            <div class="photo-preview" id="photoPreview"><span class="ph">👤</span></div>
+                            <button class="upload-btn" onclick="document.getElementById('photoInput').click()">📷 ارفع صورة</button>
+                            <button class="remove-btn" id="removePhotoBtn" style="display:none" onclick="removePhoto()">🗑️ حذف الصورة</button>
+                            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="onPhotoSelected(event)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Quote -->
+            <div class="panel">
+                <div class="panel-header"><span class="panel-title">💬 عبارة اليوم</span></div>
+                <div class="panel-body">
+                    <div class="form-group"><label class="form-label">العنوان</label><input type="text" class="form-input" id="quoteTitle"></div>
+                    <div class="form-group"><label class="form-label">الكاتب</label><input type="text" class="form-input" id="quoteAuthor"></div>
+                    <div class="form-group"><label class="form-label">النص</label><textarea class="form-input" id="quoteText"></textarea></div>
+                </div>
+            </div>
+            <!-- Date -->
+            <div class="panel">
+                <div class="panel-header"><span class="panel-title">📅 التاريخ</span></div>
+                <div class="panel-body">
+                    <div style="text-align:center;padding:0.8rem;color:var(--accent-green);font-size:0.9rem;background:rgba(52,211,153,0.08);border-radius:10px">✅ تلقائي</div>
+                </div>
+            </div>
+            <!-- Layout Controls -->
+            <div class="panel">
+                <div class="panel-header"><span class="panel-title">📐 التخطيط والأحجام</span></div>
+                <div class="panel-body">
+                    <div style="font-size:0.85rem;color:var(--accent-purple-light);font-weight:700;margin-bottom:0.8rem">🏆 موظف الشهر</div>
+                    <div class="form-group"><label class="form-label">حجم الصورة (px)</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="60" max="350" step="5" class="progress-slider" id="layPhotoSize" oninput="ulay('photoSize',this.value)" style="flex:1"><span class="progress-value" id="layPhotoSizeVal" style="color:var(--accent-purple-light)">160px</span></div></div>
+                    <div class="form-group"><label class="form-label">حجم عنوان موظف الشهر</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="12" max="80" step="1" class="progress-slider" id="layEmpLabel" oninput="ulay('empLabel',this.value)" style="flex:1"><span class="progress-value" id="layEmpLabelVal" style="color:var(--accent-purple-light)">24px</span></div></div>
+                    <div class="form-group"><label class="form-label">حجم اسم الموظف</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="12" max="80" step="1" class="progress-slider" id="layEmpName" oninput="ulay('empName',this.value)" style="flex:1"><span class="progress-value" id="layEmpNameVal" style="color:var(--accent-purple-light)">22px</span></div></div>
+                    <div class="form-group"><label class="form-label">نسبة مساحة موظف الشهر من البانل</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="20" max="80" step="5" class="progress-slider" id="layEmpRatio" oninput="ulay('empRatio',this.value)" style="flex:1"><span class="progress-value" id="layEmpRatioVal" style="color:var(--accent-purple-light)">50%</span></div></div>
+                    <div style="font-size:0.85rem;color:var(--accent-purple-light);font-weight:700;margin:1.2rem 0 0.8rem;padding-top:1rem;border-top:1px solid var(--border)">💬 العبارة</div>
+                    <div class="form-group"><label class="form-label">نسبة مساحة العبارة من البانل</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="20" max="80" step="5" class="progress-slider" id="layQuoteRatio" oninput="ulay('quoteRatio',this.value)" style="flex:1"><span class="progress-value" id="layQuoteRatioVal" style="color:var(--accent-purple-light)">50%</span></div></div>
+                </div>
+            </div>
+            <!-- Font Sizes -->
+            <div class="panel">
+                <div class="panel-header"><span class="panel-title">🔤 حجم الخط</span></div>
+                <div class="panel-body">
+                    <div class="form-group"><label class="form-label">عنوان العبارة</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="16" max="120" step="1" class="progress-slider" id="fsQuoteTitle" oninput="ufs('quoteTitle',this.value)" style="flex:1"><span class="progress-value" id="fsQuoteTitleVal" style="color:var(--accent-purple-light)">32px</span></div></div>
+                    <div class="form-group"><label class="form-label">اسم الكاتب</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="10" max="80" step="1" class="progress-slider" id="fsQuoteAuthor" oninput="ufs('quoteAuthor',this.value)" style="flex:1"><span class="progress-value" id="fsQuoteAuthorVal" style="color:var(--accent-purple-light)">20px</span></div></div>
+                    <div class="form-group"><label class="form-label">نص العبارة</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="10" max="60" step="1" class="progress-slider" id="fsQuoteText" oninput="ufs('quoteText',this.value)" style="flex:1"><span class="progress-value" id="fsQuoteTextVal" style="color:var(--accent-purple-light)">16px</span></div></div>
+                    <div class="form-group"><label class="form-label">عناوين الأقسام</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="12" max="80" step="1" class="progress-slider" id="fsSectionTitle" oninput="ufs('sectionTitle',this.value)" style="flex:1"><span class="progress-value" id="fsSectionTitleVal" style="color:var(--accent-purple-light)">20px</span></div></div>
+                    <div class="form-group"><label class="form-label">نص المهام</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="10" max="60" step="1" class="progress-slider" id="fsTaskName" oninput="ufs('taskName',this.value)" style="flex:1"><span class="progress-value" id="fsTaskNameVal" style="color:var(--accent-purple-light)">14px</span></div></div>
+                    <div class="form-group"><label class="form-label">التاريخ</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="10" max="60" step="1" class="progress-slider" id="fsDate" oninput="ufs('date',this.value)" style="flex:1"><span class="progress-value" id="fsDateVal" style="color:var(--accent-purple-light)">18px</span></div></div>
+                    <div class="form-group"><label class="form-label">المسؤول والحالة</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="8" max="40" step="1" class="progress-slider" id="fsMeta" oninput="ufs('meta',this.value)" style="flex:1"><span class="progress-value" id="fsMetaVal" style="color:var(--accent-purple-light)">12px</span></div></div>
+                    <div class="form-group"><label class="form-label">نسبة الإنجاز</label><div style="display:flex;align-items:center;gap:0.5rem;direction:ltr"><input type="range" min="8" max="40" step="1" class="progress-slider" id="fsProgress" oninput="ufs('progress',this.value)" style="flex:1"><span class="progress-value" id="fsProgressVal" style="color:var(--accent-purple-light)">12px</span></div></div>
+                </div>
+            </div>
+            <button class="btn-success" onclick="saveAll()">💾 حفظ جميع التغييرات</button>
+        </div>
+        <div class="tasks-grid" id="tasksGrid"></div>
+    </div>
+    <div class="toast" id="toast">✅ تم الحفظ بنجاح!</div>
+
+    <!-- Crop Modal -->
+    <div class="crop-modal" id="cropModal">
+        <h2 style="color:white;font-family:'Changa',sans-serif">حرّك الصورة وكبّرها عشان تضبطها</h2>
+        <div class="crop-container" id="cropContainer"><img id="cropImg"></div>
+        <div class="crop-controls"><label>🔍 تكبير</label><input type="range" id="cropZoom" min="100" max="400" value="100" oninput="applyCropZoom()"></div>
+        <div class="crop-buttons"><button class="crop-save" onclick="saveCrop()">✅ حفظ</button><button class="crop-cancel" onclick="cancelCrop()">❌ إلغاء</button></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script>
+        firebase.initializeApp({apiKey:"AIzaSyCiyb2ApY6K3YeNdeC6C8wjmWSeNYTZ03E",authDomain:"taskboard-ahdaf.firebaseapp.com",databaseURL:"https://taskboard-ahdaf-default-rtdb.europe-west1.firebasedatabase.app",projectId:"taskboard-ahdaf",storageBucket:"taskboard-ahdaf.firebasestorage.app",messagingSenderId:"576532765761",appId:"1:576532765761:web:33a0cc6888dd229e81fac0"});
+        var db=firebase.database(),dataRef=db.ref('taskboard');
+        var DEFAULT_DATA={sections:{"project-management":{title:"إدارة المشاريع",tasks:[]},"influencers":{title:"المؤثرين",tasks:[]},"public-relations":{title:"العلاقات العامة",tasks:[]},"production":{title:"الإنتاج",tasks:[]},"digital":{title:"ديجتال",tasks:[]},"korashow":{title:"كورة شو",tasks:[]}},quote:{title:"",author:"",text:""},employee:{label:"موظف الشهر",name:"",photoData:""}};
+        var currentData=null,isUpdating=false;
+        var defaultFS={quoteTitle:32,quoteAuthor:20,quoteText:16,sectionTitle:20,taskName:14,date:18,meta:12,progress:12};
+        var defaultLay={photoSize:160,empLabel:24,empName:22,empRatio:50,quoteRatio:50};
+
+        // === PHOTO CROP ===
+        var cropState={imgSrc:'',x:0,y:0,zoom:100,dragging:false,startX:0,startY:0};
+        function onPhotoSelected(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){cropState.imgSrc=ev.target.result;cropState.x=0;cropState.y=0;cropState.zoom=100;document.getElementById('cropZoom').value=100;var img=document.getElementById('cropImg');img.src=ev.target.result;img.onload=function(){applyCropZoom();document.getElementById('cropModal').classList.add('active')}};reader.readAsDataURL(file);e.target.value=''}
+        function applyCropZoom(){var z=parseInt(document.getElementById('cropZoom').value);cropState.zoom=z;var img=document.getElementById('cropImg');var s=z/100;img.style.width=(300*s)+'px';img.style.height='auto';img.style.left=cropState.x+'px';img.style.top=cropState.y+'px'}
+        (function(){var c=document.getElementById('cropContainer');var img=document.getElementById('cropImg');var state=cropState;c.addEventListener('mousedown',function(e){state.dragging=true;state.startX=e.clientX-state.x;state.startY=e.clientY-state.y;e.preventDefault()});c.addEventListener('touchstart',function(e){state.dragging=true;state.startX=e.touches[0].clientX-state.x;state.startY=e.touches[0].clientY-state.y});window.addEventListener('mousemove',function(e){if(!state.dragging)return;state.x=e.clientX-state.startX;state.y=e.clientY-state.startY;img.style.left=state.x+'px';img.style.top=state.y+'px'});window.addEventListener('touchmove',function(e){if(!state.dragging)return;state.x=e.touches[0].clientX-state.startX;state.y=e.touches[0].clientY-state.startY;img.style.left=state.x+'px';img.style.top=state.y+'px'});window.addEventListener('mouseup',function(){state.dragging=false});window.addEventListener('touchend',function(){state.dragging=false})})();
+        function saveCrop(){var canvas=document.createElement('canvas');canvas.width=300;canvas.height=300;var ctx=canvas.getContext('2d');var img=document.getElementById('cropImg');var s=cropState.zoom/100;ctx.drawImage(img,cropState.x,cropState.y,300*s,img.naturalHeight*(300*s/img.naturalWidth));var data=canvas.toDataURL('image/jpeg',0.7);if(!currentData.employee)currentData.employee={};currentData.employee.photoData=data;document.getElementById('photoPreview').innerHTML='<img src="'+data+'">';document.getElementById('removePhotoBtn').style.display='';document.getElementById('cropModal').classList.remove('active');sfb()}
+        function cancelCrop(){document.getElementById('cropModal').classList.remove('active')}
+        function removePhoto(){if(!currentData.employee)currentData.employee={};currentData.employee.photoData='';currentData.employee.photoUrl='';document.getElementById('photoPreview').innerHTML='<span class="ph">👤</span>';document.getElementById('removePhotoBtn').style.display='none';sfb()}
+
+        function gpc(p){if(p>=100)return'full';if(p>=60)return'high';if(p>=30)return'mid';return'low'}
+        function uss(sl,v){var c=gpc(v),cols={low:'#e74c3c',mid:'#f39c12',high:'#27ae60',full:'#2ecc71'};sl.className='progress-slider '+c;sl.style.background='linear-gradient(90deg,'+cols[c]+' 0%,'+cols[c]+' '+v+'%,#333 '+v+'%,#333 100%)'}
+
+        function renderSidebar(){
+            document.getElementById('quoteTitle').value=currentData.quote.title||'';
+            document.getElementById('quoteAuthor').value=currentData.quote.author||'';
+            document.getElementById('quoteText').value=currentData.quote.text||'';
+            var emp=currentData.employee||{};
+            document.getElementById('employeeLabel').value=emp.label||'موظف الشهر';
+            document.getElementById('employeeName').value=emp.name||'';
+            var prev=document.getElementById('photoPreview');
+            if(emp.photoData){prev.innerHTML='<img src="'+emp.photoData+'">';document.getElementById('removePhotoBtn').style.display=''}
+            else{prev.innerHTML='<span class="ph">👤</span>';document.getElementById('removePhotoBtn').style.display='none'}
+            var fs=currentData.fontSizes||defaultFS;
+            var ids=['quoteTitle','quoteAuthor','quoteText','sectionTitle','taskName','date','meta','progress'];
+            for(var j=0;j<ids.length;j++){var id=ids[j];var cap=id.charAt(0).toUpperCase()+id.slice(1);var sl=document.getElementById('fs'+cap);var vl=document.getElementById('fs'+cap+'Val');if(sl)sl.value=fs[id]||defaultFS[id];if(vl)vl.textContent=(fs[id]||defaultFS[id])+'px'}
+            var lay=currentData.layout||defaultLay;
+            var layIds=['photoSize','empLabel','empName','empRatio','quoteRatio'];
+            for(var j=0;j<layIds.length;j++){var id=layIds[j];var cap=id.charAt(0).toUpperCase()+id.slice(1);var sl=document.getElementById('lay'+cap);var vl=document.getElementById('lay'+cap+'Val');var v=lay[id]||defaultLay[id];if(sl)sl.value=v;if(vl)vl.textContent=v+(id.indexOf('Ratio')>=0?'%':'px')}
+        }
+        function ufs(key,val){if(!currentData.fontSizes)currentData.fontSizes=JSON.parse(JSON.stringify(defaultFS));currentData.fontSizes[key]=parseInt(val);var cap=key.charAt(0).toUpperCase()+key.slice(1);var vl=document.getElementById('fs'+cap+'Val');if(vl)vl.textContent=val+'px';sfb()}
+        function ulay(key,val){if(!currentData.layout)currentData.layout=JSON.parse(JSON.stringify(defaultLay));currentData.layout[key]=parseInt(val);var cap=key.charAt(0).toUpperCase()+key.slice(1);var vl=document.getElementById('lay'+cap+'Val');if(vl)vl.textContent=val+(key.indexOf('Ratio')>=0?'%':'px');sfb()}
+
+        function renderTasks(){
+            var grid=document.getElementById('tasksGrid');grid.innerHTML='';
+            var keys=Object.keys(currentData.sections);
+            for(var k=0;k<keys.length;k++){
+                var sk=keys[k],sec=currentData.sections[sk],tasks=sec.tasks||[];
+                var card=document.createElement('div');card.className='section-card';
+                var th='';
+                if(!tasks.length){th='<div class="empty-tasks">لا توجد مهام بعد</div>'}
+                else{for(var i=0;i<tasks.length;i++){var t=typeof tasks[i]==='string'?{name:tasks[i],progress:0,assignee:'',status:''}:tasks[i];if(!t.assignee)t.assignee='';if(!t.status)t.status='';var c=gpc(t.progress||0);
+                th+='<div class="task-row"><div class="task-top-row"><span class="task-text" id="text-'+sk+'-'+i+'">'+t.name+'</span><div class="task-actions"><button class="btn-icon edit" onclick="editTask(\''+sk+'\','+i+')">✏️</button><button class="btn-icon delete" onclick="deleteTask(\''+sk+'\','+i+')">🗑️</button></div></div>'
+                +'<div class="task-details-row"><span class="mini-label">👤</span><input type="text" class="mini-input" placeholder="المسؤول..." value="'+(t.assignee||'')+'" onchange="setAssignee(\''+sk+'\','+i+',this.value)"><span class="mini-label">📋</span><select class="mini-select" onchange="setStatus(\''+sk+'\','+i+',this.value)"><option value=""'+(!t.status?' selected':'')+'>اختر الحالة...</option><option value="no-updates"'+(t.status==='no-updates'?' selected':'')+'>لايوجد تحديثات</option><option value="in-progress"'+(t.status==='in-progress'?' selected':'')+'>قيد التنفيذ</option><option value="done"'+(t.status==='done'?' selected':'')+'>مكتملة</option><option value="delayed"'+(t.status==='delayed'?' selected':'')+'>مؤجلة</option><option value="paused"'+(t.status==='paused'?' selected':'')+'>متوقفة</option></select></div>'
+                +'<div class="progress-row"><div class="quick-btns"><button class="quick-btn" onclick="sp(\''+sk+'\','+i+',0)">0</button><button class="quick-btn" onclick="sp(\''+sk+'\','+i+',25)">25</button><button class="quick-btn" onclick="sp(\''+sk+'\','+i+',50)">50</button><button class="quick-btn" onclick="sp(\''+sk+'\','+i+',75)">75</button><button class="quick-btn" onclick="sp(\''+sk+'\','+i+',100)">100</button></div><input type="range" min="0" max="100" step="5" value="'+(t.progress||0)+'" class="progress-slider '+c+'" id="slider-'+sk+'-'+i+'" oninput="osc(\''+sk+'\','+i+',this.value)"><span class="progress-value '+c+'" id="pval-'+sk+'-'+i+'">'+(t.progress||0)+'%</span></div></div>'}}
+                card.innerHTML='<div class="section-header"><div style="flex:1"><input type="text" class="section-title-input" value="'+sec.title+'" onchange="ust(\''+sk+'\',this.value)"></div><span class="task-count">'+tasks.length+' مهمة</span></div><div class="section-body"><div class="task-add-row"><input type="text" class="task-add-input" id="add-'+sk+'" placeholder="أضف مهمة جديدة..." onkeydown="if(event.key===\'Enter\')addTask(\''+sk+'\')"><button class="btn-add" onclick="addTask(\''+sk+'\')">+</button></div><div class="task-items-list" id="list-'+sk+'">'+th+'</div></div>';
+                grid.appendChild(card);
+            }
+            document.querySelectorAll('.progress-slider').forEach(function(s){uss(s,parseInt(s.value))});
+        }
+
+        function setAssignee(sk,i,v){currentData.sections[sk].tasks[i].assignee=v;sfb()}
+        function setStatus(sk,i,v){currentData.sections[sk].tasks[i].status=v;sfb()}
+        function osc(sk,i,v){var val=parseInt(v);currentData.sections[sk].tasks[i].progress=val;var c=gpc(val);var s=document.getElementById('slider-'+sk+'-'+i);var p=document.getElementById('pval-'+sk+'-'+i);if(s)uss(s,val);if(p){p.textContent=val+'%';p.className='progress-value '+c}sfb()}
+        function sp(sk,i,v){currentData.sections[sk].tasks[i].progress=v;var s=document.getElementById('slider-'+sk+'-'+i);if(s){s.value=v;uss(s,v)}var c=gpc(v);var p=document.getElementById('pval-'+sk+'-'+i);if(p){p.textContent=v+'%';p.className='progress-value '+c}sfb()}
+        function addTask(sk){var inp=document.getElementById('add-'+sk);var v=inp.value.trim();if(!v)return;currentData.sections[sk].tasks.push({name:v,progress:0,assignee:'',status:''});inp.value='';renderTasks();sfb()}
+        function deleteTask(sk,i){currentData.sections[sk].tasks.splice(i,1);renderTasks();sfb()}
+        function editTask(sk,i){var el=document.getElementById('text-'+sk+'-'+i);var t=currentData.sections[sk].tasks[i];var cv=typeof t==='string'?t:t.name;var inp=document.createElement('input');inp.type='text';inp.className='task-edit-input';inp.value=cv;el.replaceWith(inp);inp.focus();inp.select();var save=function(){var nv=inp.value.trim();if(nv)currentData.sections[sk].tasks[i].name=nv;renderTasks();sfb()};inp.addEventListener('blur',save);inp.addEventListener('keydown',function(e){if(e.key==='Enter')save();if(e.key==='Escape')renderTasks()})}
+        function ust(sk,v){currentData.sections[sk].title=v;sfb()}
+
+        function csd(){currentData.quote.title=document.getElementById('quoteTitle').value;currentData.quote.author=document.getElementById('quoteAuthor').value;currentData.quote.text=document.getElementById('quoteText').value;if(!currentData.employee)currentData.employee={};currentData.employee.label=document.getElementById('employeeLabel').value;currentData.employee.name=document.getElementById('employeeName').value;if(!currentData.fontSizes)currentData.fontSizes=JSON.parse(JSON.stringify(defaultFS))}
+        var st=null;
+        function sfb(){csd();clearTimeout(st);st=setTimeout(function(){isUpdating=true;dataRef.set(currentData).then(function(){setTimeout(function(){isUpdating=false},500)})},300)}
+        function saveAll(){csd();isUpdating=true;dataRef.set(currentData).then(function(){var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500);setTimeout(function(){isUpdating=false},500)})}
+
+        db.ref('.info/connected').on('value',function(s){var e=document.getElementById('sb'),t=document.getElementById('stt');if(s.val()){e.className='status-badge on';t.textContent='متصل'}else{e.className='status-badge off';t.textContent='غير متصل'}});
+
+        var fl=true;
+        dataRef.on('value',function(snap){
+            if(isUpdating)return;
+            var d=snap.val();
+            if(d){if(!d.sections)d.sections={};if(!d.sections['digital'])d.sections['digital']={title:'ديجتال',tasks:[]};if(!d.sections['korashow'])d.sections['korashow']={title:'كورة شو',tasks:[]};if(!d.employee)d.employee={label:'موظف الشهر',name:'',photoData:''};
+            Object.keys(d.sections).forEach(function(k){d.sections[k].tasks=(d.sections[k].tasks||[]).map(function(t){if(typeof t==='string')return{name:t,progress:0,assignee:'',status:''};if(!t.assignee)t.assignee='';if(!t.status)t.status='';return t})});currentData=d}
+            else{currentData=JSON.parse(JSON.stringify(DEFAULT_DATA));dataRef.set(currentData)}
+            renderSidebar();renderTasks();
+            if(fl){fl=false;setTimeout(function(){document.getElementById('loadingOverlay').classList.add('hidden')},400)}
+        });
+        document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){document.querySelectorAll('.sidebar .form-input').forEach(function(inp){inp.addEventListener('input',function(){sfb()});inp.addEventListener('change',function(){sfb()})})},2000)});
+        setTimeout(function(){if(fl){currentData=JSON.parse(JSON.stringify(DEFAULT_DATA));renderSidebar();renderTasks();document.getElementById('loadingOverlay').classList.add('hidden')}},5000);
+    </script>
+</body>
+</html>
